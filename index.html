@@ -1,0 +1,540 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>案件一覧</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.10.0/dist/tabler-icons.min.css">
+<style>
+/* ===== リセット & ベース ===== */
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#ffffff;--bg2:#f8f8f8;--border:#e0e0e0;--border2:#d0d0d0;
+  --text:#1a1a1a;--text2:#666;--text3:#999;
+  --blue:#2563eb;--blue-bg:#eff6ff;
+  --red:#dc2626;--red-bg:#fef2f2;
+  --yellow-bg:#fffbeb;--yellow-border:#fbbf24;--yellow-text:#92400e;
+  --green-bg:#f0fdf4;--green-text:#166534;
+  --radius:8px;--radius-sm:5px;
+  --shadow:0 1px 3px rgba(0,0,0,.1);
+}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','Hiragino Sans',sans-serif;background:#f0f2f5;color:var(--text);min-height:100vh}
+
+/* ===== レイアウト ===== */
+.page{max-width:1600px;margin:0 auto;padding:16px}
+.top-bar{display:flex;align-items:center;gap:12px;margin-bottom:16px;flex-wrap:wrap;background:var(--bg);padding:12px 16px;border-radius:var(--radius);box-shadow:var(--shadow)}
+.top-bar h1{font-size:17px;font-weight:600;flex:1;display:flex;align-items:center;gap:8px;color:var(--text)}
+.filter-section{background:var(--bg);padding:12px 16px;border-radius:var(--radius);box-shadow:var(--shadow);margin-bottom:12px;display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+.filter-section label{font-size:13px;color:var(--text2);white-space:nowrap}
+.filter-section select,.filter-section input[type=text]{font-size:13px;padding:5px 9px;height:30px;border:1px solid var(--border2);border-radius:var(--radius-sm);background:var(--bg);color:var(--text);outline:none}
+.filter-section select:focus,.filter-section input:focus{border-color:var(--blue)}
+.metrics{display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap}
+.metric{background:var(--bg);border-radius:var(--radius);padding:5px 12px;box-shadow:var(--shadow);display:flex;align-items:center;gap:8px}
+.metric .val{font-size:16px;font-weight:600;color:var(--text)}
+.metric .lbl{font-size:12px;color:var(--text2)}
+
+/* ===== テーブル ===== */
+.tbl-card{background:var(--bg);border-radius:var(--radius);box-shadow:var(--shadow);overflow:hidden}
+.tbl-wrap{overflow-x:auto}
+table{width:100%;border-collapse:collapse;font-size:11.5px}
+thead th{background:var(--bg2);color:var(--text2);font-weight:600;text-align:left;padding:9px 10px;border-bottom:1px solid var(--border);white-space:nowrap;cursor:pointer;user-select:none;position:sticky;top:0}
+thead th:hover{color:var(--text)}
+thead th.no-sort{cursor:default}
+thead th .sort-icon{opacity:.4;font-size:10px}
+thead th .sort-icon.on{opacity:1;color:var(--blue)}
+tbody tr{border-bottom:1px solid var(--border);transition:background .1s}
+tbody tr:last-child{border-bottom:none}
+tbody tr:hover{background:var(--bg2)}
+tbody tr.alert-row{background:#fff8f5}
+tbody tr.row-taio{background:#fff7ed}
+tbody tr.row-taio:hover{background:#ffedd5}
+tbody tr.row-waiting{background:#f0fdf4}
+tbody tr.row-waiting:hover{background:#dcfce7}
+tbody tr.row-done{background:#f5f5f5}
+tbody tr.row-done:hover{background:#ebebeb}
+td{padding:8px 10px;vertical-align:middle}
+.dates-cell{display:flex;flex-direction:column;gap:1px}
+.date-chip{font-size:11.5px;white-space:nowrap;color:var(--text)}
+.dl{font-size:11.5px;white-space:nowrap}
+.dl.near{color:#b45309;font-weight:600}
+.dl.past{color:var(--red);font-weight:600}
+.memo-cell{font-size:11.5px;color:var(--text2);max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.url-link{color:var(--blue);font-size:11.5px;text-decoration:none;display:inline-flex;align-items:center;gap:3px}
+.url-link:hover{text-decoration:underline}
+.status-sel{font-size:11px;padding:2px 4px;height:24px;border:1px solid var(--border2);border-radius:var(--radius-sm);background:var(--bg);color:var(--text)}
+
+/* ===== ボタン ===== */
+.btn{display:inline-flex;align-items:center;gap:5px;padding:6px 13px;border-radius:var(--radius-sm);font-size:13px;font-weight:500;cursor:pointer;border:1px solid var(--border2);background:var(--bg);color:var(--text);transition:background .1s}
+.btn:hover{background:var(--bg2)}
+.btn-primary{background:var(--blue);color:#fff;border-color:var(--blue)}
+.btn-primary:hover{background:#1d4ed8;border-color:#1d4ed8}
+.btn-danger{color:var(--red);border-color:#fca5a5}
+.btn-danger:hover{background:var(--red-bg)}
+.btn-sm{padding:3px 7px;font-size:12px}
+
+/* ===== アラート ===== */
+.alert-banner{background:var(--yellow-bg);border:1px solid var(--yellow-border);border-radius:var(--radius);padding:9px 13px;margin-bottom:12px;font-size:12.5px;color:var(--yellow-text);display:flex;align-items:center;gap:7px}
+
+/* ===== ローディング / エラー ===== */
+.loading{text-align:center;padding:3rem;color:var(--text2);font-size:14px}
+.error-box{background:var(--red-bg);border:1px solid #fca5a5;border-radius:var(--radius);padding:12px 16px;margin-bottom:12px;font-size:13px;color:var(--red)}
+
+/* ===== モーダル ===== */
+.modal-bg{position:fixed;inset:0;background:rgba(0,0,0,.5);display:flex;align-items:flex-start;justify-content:center;padding:40px 16px;z-index:200;overflow-y:auto}
+.modal{background:var(--bg);border-radius:var(--radius);border:1px solid var(--border);padding:20px;width:100%;max-width:560px;box-shadow:0 8px 30px rgba(0,0,0,.15)}
+.modal h2{font-size:16px;font-weight:600;margin-bottom:16px;color:var(--text)}
+.form-section{font-size:12px;font-weight:600;color:var(--text2);margin:14px 0 8px;padding-bottom:4px;border-bottom:1px solid var(--border)}
+.form-row{margin-bottom:11px}
+.form-row label{display:block;font-size:12px;color:var(--text2);margin-bottom:4px}
+.form-row input,.form-row select,.form-row textarea{width:100%;font-size:13px;padding:6px 8px;border:1px solid var(--border2);border-radius:var(--radius-sm);background:var(--bg);color:var(--text);outline:none}
+.form-row input:focus,.form-row select:focus,.form-row textarea:focus{border-color:var(--blue)}
+.form-row textarea{height:60px;resize:vertical}
+.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:0 12px}
+.form-actions{display:flex;justify-content:flex-end;gap:8px;margin-top:14px}
+.dates-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:6px}
+.date-input-wrap{display:flex;flex-direction:column;gap:3px}
+.date-input-wrap label{font-size:11px;color:var(--text2);display:flex;align-items:center;justify-content:space-between}
+.remove-date-btn{font-size:10px;color:var(--text3);background:none;border:none;cursor:pointer;padding:0}
+.remove-date-btn:hover{color:var(--red)}
+.add-date-btn{font-size:12px;color:var(--text2);background:none;border:1px dashed var(--border2);border-radius:var(--radius-sm);padding:4px;cursor:pointer;text-align:center;width:100%}
+.add-date-btn:hover{background:var(--bg2)}
+.spinner{display:inline-block;width:14px;height:14px;border:2px solid #fff;border-top-color:transparent;border-radius:50%;animation:spin .6s linear infinite;vertical-align:middle}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* ===== 設定画面 ===== */
+.setup-card{background:var(--bg);border-radius:var(--radius);box-shadow:var(--shadow);padding:24px;max-width:600px;margin:40px auto}
+.setup-card h2{font-size:18px;font-weight:600;margin-bottom:8px}
+.setup-card p{font-size:13px;color:var(--text2);margin-bottom:16px;line-height:1.7}
+.setup-card ol{font-size:13px;color:var(--text2);line-height:2;padding-left:20px;margin-bottom:16px}
+.setup-card code{background:var(--bg2);border:1px solid var(--border);border-radius:3px;padding:1px 5px;font-size:12px;font-family:monospace}
+.url-input-row{display:flex;gap:8px}
+.url-input-row input{flex:1;font-size:13px;padding:7px 10px;border:1px solid var(--border2);border-radius:var(--radius-sm);outline:none}
+.url-input-row input:focus{border-color:var(--blue)}
+</style>
+</head>
+<body>
+<div class="page" id="app">
+  <div class="loading"><i class="ti ti-loader-2" style="font-size:24px;animation:spin .8s linear infinite;display:block;margin:0 auto 8px"></i>読み込み中...</div>
+</div>
+
+<script>
+// =============================================
+// ★ 設定：Apps ScriptのURLをここに貼る
+// =============================================
+let GAS_URL = localStorage.getItem('anken_gas_url') || '';
+
+const TODAY = new Date(); TODAY.setHours(0,0,0,0);
+const STATUS_LIST = ['対応中','結果待ち','済み'];
+let data = [], editId = null;
+let sortCol = 'honDates', sortAsc = true;
+let filterTanto = 'all', filterStatus = 'all', searchText = '';
+let loading = false;
+
+// ===== API =====
+async function api(action, payload) {
+  const params = new URLSearchParams({ action });
+  if (payload) {
+    if (action === 'delete') params.set('id', payload);
+    else params.set('data', JSON.stringify(payload));
+  }
+  const res = await fetch(`${GAS_URL}?${params}`, {
+    method: 'GET',
+    redirect: 'follow',
+    mode: 'cors',
+  });
+  const json = await res.json();
+  if (json.error) throw new Error(json.error);
+  return json;
+}
+
+let lastUpdated = null;
+async function loadData() {
+  loading = true; render();
+  try {
+    data = await api('getAll');
+    lastUpdated = new Date();
+    loading = false; render();
+  } catch(e) {
+    loading = false; renderError('データの読み込みに失敗しました：' + e.message);
+  }
+}
+
+// ===== ユーティリティ =====
+function parseDate(s) { if(!s) return null; const d=new Date(s); d.setHours(0,0,0,0); return isNaN(d)?null:d; }
+function daysUntil(s) { const d=parseDate(s); if(!d) return null; return Math.round((d-TODAY)/(1000*60*60*24)); }
+function fmtDate(s) { if(!s) return ''; const d=parseDate(s); if(!d) return s; return `${d.getMonth()+1}/${d.getDate()}`; }
+function fmtDeadline(lim) {
+  if(!lim||!lim.date) return {text:'—',cls:''};
+  function parseTime(v) {
+    if (!v) return '';
+    const s = String(v);
+    // 正常な HH:MM 形式
+    if (/^\d{1,2}:\d{2}$/.test(s)) return s.replace(':', '：');
+    // Date文字列が混入している場合はパース
+    try {
+      const d = new Date(s);
+      if (!isNaN(d)) {
+        const h = String(d.getHours()).padStart(2,'0');
+        const m = String(d.getMinutes()).padStart(2,'0');
+        return h + '：' + m;
+      }
+    } catch(e) {}
+    return '';
+  }
+  const timeDisp=parseTime(lim.time); const dl=daysUntil(lim.date), t=timeDisp?` ${timeDisp}まで`:'', base=fmtDate(lim.date);
+  if(dl===null) return {text:base+t,cls:''};
+  if(dl<0) return {text:`${base}${t}(期限切れ)`,cls:'past'};
+  if(dl===0) return {text:`${base}${t}(本日)`,cls:'near'};
+  if(dl<=2) return {text:`${base}${t}(残${dl}日)`,cls:'near'};
+  return {text:base+t,cls:''};
+}
+function firstHonDate(r) { return ([...(r.honDates||[])].filter(Boolean).sort())[0]||''; }
+function isAlert(r) {
+  const b=daysUntil(r.boshuLimit?.date);
+  return r.status==='対応中'&&(b===0);
+}
+function getFiltered() {
+  let rows=[...data];
+  if(filterTanto!=='all') rows=rows.filter(r=>r.tanto===filterTanto);
+  if(filterStatus!=='all') rows=rows.filter(r=>r.status===filterStatus);
+  if(searchText) rows=rows.filter(r=>(r.anken+r.sakiTanto+r.memo).includes(searchText));
+  rows.sort((a,b)=>{
+    // 期限切れは常に一番下
+    const aExpired = (daysUntil(a.sakiLimit?.date)<0 || daysUntil(a.boshuLimit?.date)<0);
+    const bExpired = (daysUntil(b.sakiLimit?.date)<0 || daysUntil(b.boshuLimit?.date)<0);
+    if(aExpired && !bExpired) return 1;
+    if(!aExpired && bExpired) return -1;
+    let av,bv;
+    if(sortCol==='honDates'){av=Number(a.id||0);bv=Number(b.id||0);}
+    else if(sortCol==='budget'){av=String(a.budget||'');bv=String(b.budget||'');}
+    else if(sortCol==='sakiLimit'){av=a.sakiLimit?.date||'';bv=b.sakiLimit?.date||'';}
+    else if(sortCol==='boshuLimit'){av=a.boshuLimit?.date||'';bv=b.boshuLimit?.date||'';}
+    else{av=a[sortCol]??'';bv=b[sortCol]??'';}
+    return (av<bv?-1:av>bv?1:0)*(sortAsc?1:-1);
+  });
+  return rows;
+}
+function getTantoList() { return [...new Set(data.map(r=>r.tanto))].filter(Boolean).sort(); }
+
+// ===== 描画 =====
+function thSort(col,label,noSort) {
+  if(noSort) return `<th class="no-sort">${label}</th>`;
+  const on=sortCol===col, icon=on?(sortAsc?'↑':'↓'):'↕';
+  return `<th onclick="setSort('${col}')">${label} <span class="sort-icon ${on?'on':''}">${icon}</span></th>`;
+}
+
+function renderTable() {
+  if(loading) return `<div class="loading"><i class="ti ti-loader-2" style="font-size:20px;animation:spin .8s linear infinite;display:block;margin:0 auto 8px"></i>読み込み中...</div>`;
+  const rows=getFiltered();
+  if(!rows.length) return `<div class="loading">該当する案件がありません</div>`;
+  const trs=rows.map(r=>{
+    const dh=(r.honDates||[]).filter(Boolean).sort().map(d=>`<span class="date-chip">${fmtDate(d)}</span>`).join('');
+    const sl=fmtDeadline(r.sakiLimit), bl=fmtDeadline(r.boshuLimit);
+    const uc=r.url?`<a href="${r.url}" class="url-link" target="_blank"><i class="ti ti-external-link"></i>フォーム</a>`:'';
+    const statusClass = r.status==='結果待ち'?'row-waiting':r.status==='済み'?'row-done':'row-taio';
+    const alertClass = isAlert(r)?'alert-row':'';
+    return `<tr class="${statusClass} ${alertClass}">
+      <td><div class="dates-cell">${dh||'—'}</div></td>
+      <td style="white-space:nowrap">${r.tanto||''}</td>
+      <td style="white-space:nowrap;max-width:130px;overflow:hidden;text-overflow:ellipsis" title="${r.sakiTanto||''}">${r.sakiTanto||''}</td>
+      <td style="max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${r.anken||''}">${r.anken||''}</td>
+      <td class="dl ${sl.cls}">${sl.text}</td>
+      <td class="dl ${bl.cls}">${bl.text}</td>
+      <td>
+        <select class="status-sel" onchange="updateStatus(${r.id},this.value)">
+          ${STATUS_LIST.map(s=>`<option value="${s}" ${r.status===s?'selected':''}>${s}</option>`).join('')}
+        </select>
+      </td>
+      <td style="text-align:right;white-space:nowrap">${r.budget||''}</td>
+      <td class="memo-cell" title="${r.memo||''}">${r.memo||''}</td>
+      <td>${uc}</td>
+      <td style="white-space:nowrap;display:flex;gap:4px">
+        <button class="btn btn-sm" onclick="openEdit(${r.id})"><i class="ti ti-edit"></i></button>
+        <button class="btn btn-sm btn-danger" onclick="deleteRow(${r.id})"><i class="ti ti-trash"></i></button>
+      </td>
+    </tr>`;
+  }).join('');
+  return `<div class="tbl-card"><div class="tbl-wrap"><table>
+    <thead><tr>
+      ${thSort('honDates','◆')}${thSort('tanto','担当')}${thSort('sakiTanto','先方担当者')}
+      ${thSort('anken','案件名')}${thSort('sakiLimit','先方期限')}${thSort('boshuLimit','募集期限')}
+      ${thSort('status','状態')}${thSort('budget','出演料')}
+      <th class="no-sort">備考</th><th class="no-sort">フォーム</th><th class="no-sort"></th>
+    </tr></thead>
+    <tbody>${trs}</tbody>
+  </table></div></div>`;
+}
+
+function renderMetrics(tanto) {
+  const rows=getFiltered();
+  const tanto1='竹林', tanto2='山田';
+  const count1=rows.filter(r=>r.tanto===tanto1).length;
+  const count2=rows.filter(r=>r.tanto===tanto2).length;
+  const al=rows.filter(r=>daysUntil(r.boshuLimit?.date)===0&&r.status==='対応中').length;
+  return `<div class="metrics">
+    <div class="metric"><div class="val">${count1}</div><div class="lbl">${tanto1}</div></div>
+    <div class="metric"><div class="val">${count2}</div><div class="lbl">${tanto2}</div></div>
+    <div class="metric"><div class="val" style="${al>0?'color:#b45309':''}">${al}</div><div class="lbl">本日締切</div></div>
+    <label style="font-size:13px;color:var(--text2);white-space:nowrap;margin-left:8px">担当者</label>
+    <select onchange="setFilter('tanto',this.value)" style="font-size:13px;padding:5px 9px;height:30px;border:1px solid var(--border2);border-radius:var(--radius-sm);background:var(--bg);color:var(--text);outline:none">
+      <option value="all">すべて</option>
+      ${tanto.map(t=>`<option value="${t}" ${filterTanto===t?'selected':''}>${t}</option>`).join('')}
+    </select>
+    <label style="font-size:13px;color:var(--text2);white-space:nowrap">状態</label>
+    <select onchange="setFilter('status',this.value)" style="font-size:13px;padding:5px 9px;height:30px;border:1px solid var(--border2);border-radius:var(--radius-sm);background:var(--bg);color:var(--text);outline:none">
+      <option value="all">すべて</option>
+      ${STATUS_LIST.map(s=>`<option value="${s}" ${filterStatus===s?'selected':''}>${s}</option>`).join('')}
+    </select>
+    <input type="text" placeholder="案件名・備考で検索" value="${searchText}" oninput="setSearch(this.value)" style="flex:1;min-width:140px;max-width:260px;font-size:13px;padding:5px 9px;height:30px;border:1px solid var(--border2);border-radius:var(--radius-sm);background:var(--bg);color:var(--text);outline:none">
+  </div>`;
+}
+
+function renderAlerts() {
+  const rows=data.filter(isAlert);
+  if(!rows.length) return '';
+  return `<div class="alert-banner"><i class="ti ti-alert-triangle"></i>締切が迫っています：${rows.map(r=>`「${r.anken}」`).join('、')}</div>`;
+}
+
+function render() {
+  if(!GAS_URL) { renderSetup(); return; }
+  const tanto=getTantoList();
+  document.getElementById('app').innerHTML=`
+  <div class="top-bar">
+    <h1><i class="ti ti-clipboard-list"></i>案件一覧</h1>
+    <button class="btn" onclick="downloadCSV()" style="font-size:12px"><i class="ti ti-download"></i>CSVで出力</button>
+    <button class="btn" onclick="renderSetup(true)" style="font-size:12px"><i class="ti ti-settings"></i>設定</button>
+    <span style="font-size:11px;color:#999">${lastUpdated?'最終更新 '+lastUpdated.getHours()+':'+String(lastUpdated.getMinutes()).padStart(2,'0'):''}</span>
+    <button class="btn" onclick="resetSort()" style="font-size:12px"><i class="ti ti-arrow-back-up"></i>ソートを戻す</button>
+    <button class="btn" onclick="loadData()" style="font-size:12px"><i class="ti ti-refresh"></i>更新</button>
+    <button class="btn btn-primary" onclick="openNew()"><i class="ti ti-plus"></i>新規追加</button>
+  </div>
+  ${renderAlerts()}
+  ${renderMetrics(tanto)}
+  ${renderTable()}`;
+}
+
+function renderError(msg) {
+  document.getElementById('app').innerHTML=`<div class="error-box"><i class="ti ti-alert-circle"></i> ${msg}</div><div style="text-align:center;margin-top:12px"><button class="btn" onclick="renderSetup(true)">設定を確認する</button></div>`;
+}
+
+// ===== 設定画面 =====
+function renderSetup(fromApp) {
+  document.getElementById('app').innerHTML=`
+  <div class="setup-card">
+    <h2>🔧 初期設定 — Google Apps Script連携</h2>
+    <p>以下の手順でGoogleスプレッドシートと連携できます。</p>
+    <ol>
+      <li>Googleスプレッドシートを新規作成する</li>
+      <li>メニューから <code>拡張機能</code> → <code>Apps Script</code> を開く</li>
+      <li>配布した <code>コード.gs</code> の内容を貼り付けて保存</li>
+      <li>「デプロイ」→「新しいデプロイ」→ 種類：<strong>ウェブアプリ</strong></li>
+      <li>アクセスできるユーザー：<strong>全員</strong> に設定して「デプロイ」</li>
+      <li>発行されたURLをコピーして下に貼る</li>
+    </ol>
+    <div class="url-input-row">
+      <input type="url" id="gas-url-input" placeholder="https://script.google.com/macros/s/..." value="${GAS_URL}">
+      <button class="btn btn-primary" onclick="saveGasUrl()">保存して接続</button>
+    </div>
+    ${fromApp?`<div style="margin-top:12px;text-align:right"><button class="btn" onclick="render()">キャンセル</button></div>`:''}
+  </div>`;
+}
+
+function saveGasUrl() {
+  const url = document.getElementById('gas-url-input').value.trim();
+  if(!url.startsWith('https://script.google.com')) {
+    alert('正しいApps ScriptのURLを入力してください'); return;
+  }
+  GAS_URL = url;
+  localStorage.setItem('anken_gas_url', url);
+  loadData().then(startAutoReload);
+}
+
+// ===== フィルター・ソート =====
+window.downloadCSV = () => {
+  const headers = ['ID','担当','先方担当者','案件名','本番日','先方期限日','先方期限時間','募集期限日','募集期限時間','状態','出演料','備考','フォームURL'];
+  const rows = getFiltered().map(r => [
+    r.id,
+    r.tanto||'',
+    r.sakiTanto||'',
+    r.anken||'',
+    (r.honDates||[]).filter(Boolean).join(' / '),
+    r.sakiLimit?.date||'',
+    r.sakiLimit?.time||'',
+    r.boshuLimit?.date||'',
+    r.boshuLimit?.time||'',
+    r.status||'',
+    r.budget||'',
+    r.memo||'',
+    r.url||''
+  ]);
+
+  const escape = v => {
+    const s = String(v);
+    if(s.includes(',') || s.includes('"') || s.includes('\n')) return '"' + s.replace(/"/g, '""') + '"';
+    return s;
+  };
+
+  const csv = [headers, ...rows].map(row => row.map(escape).join(',')).join('\n');
+  const bom = '\uFEFF'; // Excel用BOM
+  const blob = new Blob([bom + csv], {type: 'text/csv;charset=utf-8;'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  const now = new Date();
+  const dateStr = now.getFullYear() + ('0'+(now.getMonth()+1)).slice(-2) + ('0'+now.getDate()).slice(-2);
+  a.download = '案件一覧_' + dateStr + '.csv';
+  a.click();
+  URL.revokeObjectURL(url);
+};
+
+window.resetSort = () => { sortCol='honDates'; sortAsc=false; render(); };
+window.setSort = col => { if(sortCol===col) sortAsc=!sortAsc; else{sortCol=col;sortAsc=true;} render(); };
+window.setFilter = (key,val) => { if(key==='tanto') filterTanto=val; else filterStatus=val; render(); };
+window.setSearch = val => { searchText=val; render(); };
+
+// ===== CRUD =====
+window.updateStatus = async (id, val) => {
+  const r=data.find(d=>d.id===id); if(!r) return;
+  const orig=r.status; r.status=val; render();
+  try { await api('update', r); }
+  catch(e) { r.status=orig; render(); alert('更新に失敗しました'); }
+};
+
+window.deleteRow = async id => {
+  if(!confirm('この案件を削除しますか？')) return;
+  const orig=[...data]; data=data.filter(d=>d.id!==id); render();
+  try { await api('delete', id); }
+  catch(e) { data=orig; render(); alert('削除に失敗しました'); }
+};
+
+// ===== モーダル =====
+let modalDates=[''];
+window.addDate = () => { if(modalDates.length<7){modalDates.push('');renderDateInputs();} };
+window.removeDate = i => { modalDates.splice(i,1); renderDateInputs(); };
+window.updateDate = (i,v) => { modalDates[i]=v; };
+
+function renderDateInputs() {
+  const items=modalDates.map((v,i)=>`
+    <div class="date-input-wrap">
+      <label>${i===0?'第1日目':`第${i+1}日目`}${i>0?` <button class="remove-date-btn" onclick="removeDate(${i})">✕</button>`:''}</label>
+      <input type="date" id="di-${i}" value="${v}" oninput="updateDate(${i},this.value)">
+    </div>`).join('');
+  const add=modalDates.length<7?`<div class="date-input-wrap"><label>&nbsp;</label><button class="add-date-btn" onclick="addDate()"><i class="ti ti-plus"></i> 追加</button></div>`:'';
+  const el=document.getElementById('dates-container');
+  if(el) el.innerHTML=`<div class="dates-grid">${items}${add}</div>`;
+}
+
+function openModal(r) {
+  const editing=r!==null;
+  const row=editing?r:{};
+  function normTime(v) {
+    if(!v) return '';
+    const s=String(v);
+    if(/^\d{1,2}:\d{2}$/.test(s)) return s.padStart(5,'0');
+    try { const d=new Date(s); if(!isNaN(d)) return String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0'); } catch(e){}
+    return '';
+  }
+  const sl={date:(row.sakiLimit?.date)||'', time:normTime(row.sakiLimit?.time)};
+  const bl={date:(row.boshuLimit?.date)||'', time:normTime(row.boshuLimit?.time)};
+  const el=document.createElement('div');
+  el.id='modal-overlay';
+  el.innerHTML=`<div class="modal-bg" id="modal-bg" onclick="closeBg(event)">
+  <div class="modal">
+    <h2>${editing?'案件を編集':'新規案件を追加'}</h2>
+    <div class="form-grid">
+      <div class="form-row"><label>担当者 *</label><input id="f-tanto" value="${row.tanto||''}" placeholder="例：竹林"></div>
+      <div class="form-row"><label>先方担当者名</label><input id="f-sakiTanto" value="${row.sakiTanto||''}" placeholder="例：TBS：馬渡氏"></div>
+    </div>
+    <div class="form-row"><label>案件名 *</label><input id="f-anken" value="${row.anken||''}" placeholder="案件・番組名"></div>
+    <div class="form-section">先方期限</div>
+    <div class="form-grid">
+      <div class="form-row"><label>日付</label><input type="date" id="sl-date" value="${sl.date}"></div>
+      <div class="form-row"><label>時間</label><input type="time" id="sl-time" value="${sl.time}"></div>
+    </div>
+    <div class="form-section">募集期限</div>
+    <div class="form-grid">
+      <div class="form-row"><label>日付</label><input type="date" id="bl-date" value="${bl.date}"></div>
+      <div class="form-row"><label>時間</label><input type="time" id="bl-time" value="${bl.time}"></div>
+    </div>
+    <div class="form-section">その他</div>
+    <div class="form-grid">
+      <div class="form-row"><label>状態</label>
+        <select id="f-status">${STATUS_LIST.map(s=>`<option value="${s}" ${(row.status||'対応中')===s?'selected':''}>${s}</option>`).join('')}</select>
+      </div>
+      <div class="form-row"><label>出演料</label><input type="text" id="f-budget" value="${row.budget||''}" placeholder="100"></div>
+    </div>
+    <div class="form-row"><label>備考</label><textarea id="f-memo">${row.memo||''}</textarea></div>
+    <div class="form-row"><label>回答フォームURL</label><input id="f-url" value="${row.url||''}" placeholder="https://docs.google.com/..."></div>
+    <div class="form-actions">
+      <button class="btn" onclick="closeModal()">キャンセル</button>
+      <button class="btn btn-primary" id="save-btn" onclick="saveForm(${editing?row.id:'null'})">
+        ${editing?'保存':'追加'}
+      </button>
+    </div>
+  </div></div>`;
+  document.body.appendChild(el);
+}
+
+window.openNew = () => openModal(null);
+window.openEdit = id => openModal(data.find(d=>d.id===id)||null);
+window.closeModal = () => document.getElementById('modal-overlay')?.remove();
+window.closeBg = e => { if(e.target.id==='modal-bg') closeModal(); };
+
+window.saveForm = async (editingId) => {
+  const tanto=document.getElementById('f-tanto').value.trim();
+  const anken=document.getElementById('f-anken').value.trim();
+  if(!tanto||!anken){ alert('担当者と案件名は必須です'); return; }
+  const btn=document.getElementById('save-btn');
+  btn.disabled=true; btn.innerHTML=`<span class="spinner"></span> 保存中...`;
+  const honDates=[];
+  const fields={
+    tanto, anken,
+    sakiTanto:document.getElementById('f-sakiTanto').value.trim(),
+    honDates,
+    sakiLimit:{date:document.getElementById('sl-date').value,time:document.getElementById('sl-time').value},
+    boshuLimit:{date:document.getElementById('bl-date').value,time:document.getElementById('bl-time').value},
+    status:document.getElementById('f-status').value,
+    budget:document.getElementById('f-budget').value.trim(),
+    memo:document.getElementById('f-memo').value.trim(),
+    url:document.getElementById('f-url').value.trim(),
+  };
+  try {
+    if(editingId!==null) {
+      const updated={...data.find(d=>d.id===editingId),...fields};
+      await api('update', updated);
+      const idx=data.findIndex(d=>d.id===editingId);
+      if(idx>=0) data[idx]=updated;
+    } else {
+      const res=await api('add', fields);
+      data.push({id:res.id,...fields});
+    }
+    closeModal(); render();
+  } catch(e) {
+    alert('保存に失敗しました：'+e.message);
+    btn.disabled=false; btn.textContent=editingId!==null?'保存':'追加';
+  }
+};
+
+// ===== 起動 =====
+// 自動更新（1分ごと）
+let autoReloadTimer = null;
+function startAutoReload() {
+  stopAutoReload();
+  autoReloadTimer = setInterval(async () => {
+    // モーダルが開いている間は更新しない
+    if(document.getElementById('modal-overlay')) return;
+    try {
+      const fresh = await api('getAll');
+      data = fresh;
+      render();
+    } catch(e) { /* サイレントに失敗 */ }
+  }, 60000);
+}
+function stopAutoReload() {
+  if(autoReloadTimer) { clearInterval(autoReloadTimer); autoReloadTimer = null; }
+}
+
+if(GAS_URL) { loadData().then(startAutoReload); } else renderSetup();
+</script>
+</body>
+</html>
