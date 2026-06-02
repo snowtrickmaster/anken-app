@@ -52,6 +52,8 @@ tbody tr.row-waiting{background:#f0fdf4}
 tbody tr.row-waiting:hover{background:#dcfce7}
 tbody tr.row-done{background:#f5f5f5}
 tbody tr.row-done:hover{background:#ebebeb}
+tbody tr.row-kakunin{background:#eff6ff}
+tbody tr.row-kakunin:hover{background:#dbeafe}
 td{padding:8px 10px;vertical-align:middle}
 .dates-cell{display:flex;flex-direction:column;gap:1px}
 .date-chip{font-size:11.5px;white-space:nowrap;color:var(--text)}
@@ -124,7 +126,7 @@ td{padding:8px 10px;vertical-align:middle}
 let GAS_URL = localStorage.getItem('anken_gas_url') || '';
 
 const TODAY = new Date(); TODAY.setHours(0,0,0,0);
-const STATUS_LIST = ['対応中','結果待ち','済み'];
+const STATUS_LIST = ['対応中','確認中','結果待ち','済み'];
 let data = [], editId = null;
 let sortCol = 'honDates', sortAsc = true;
 let filterTanto = 'all', filterStatus = 'all', searchText = '';
@@ -194,7 +196,7 @@ function isAlert(r) {
   return r.status==='対応中'&&(b===0);
 }
 function getFiltered() {
-  let rows=[...data];
+  let rows = showHidden ? [...data] : data.filter(r=>!r.hidden);
   if(filterTanto!=='all') rows=rows.filter(r=>r.tanto===filterTanto);
   if(filterStatus!=='all') rows=rows.filter(r=>r.status===filterStatus);
   if(searchText) rows=rows.filter(r=>(r.anken+r.sakiTanto+r.memo).includes(searchText));
@@ -231,7 +233,7 @@ function renderTable() {
     const dh=(r.honDates||[]).filter(Boolean).sort().map(d=>`<span class="date-chip">${fmtDate(d)}</span>`).join('');
     const sl=fmtDeadline(r.sakiLimit), bl=fmtDeadline(r.boshuLimit);
     const uc=r.url?`<a href="${r.url}" class="url-link" target="_blank"><i class="ti ti-external-link"></i>フォーム</a>`:'';
-    const statusClass = r.status==='結果待ち'?'row-waiting':r.status==='済み'?'row-done':'row-taio';
+    const statusClass = r.status==='結果待ち'?'row-waiting':r.status==='済み'?'row-done':r.status==='確認中'?'row-kakunin':'row-taio';
     const alertClass = isAlert(r)?'alert-row':'';
     return `<tr class="${statusClass} ${alertClass}">
       <td><div class="dates-cell">${dh||'—'}</div></td>
@@ -304,6 +306,7 @@ function render() {
     <button class="btn" onclick="downloadCSV()" style="font-size:12px"><i class="ti ti-download"></i>CSVで出力</button>
     <button class="btn" onclick="renderSetup(true)" style="font-size:12px"><i class="ti ti-settings"></i>設定</button>
     <span style="font-size:11px;color:#999">${lastUpdated?'最終更新 '+lastUpdated.getHours()+':'+String(lastUpdated.getMinutes()).padStart(2,'0'):''}</span>
+    <button class="btn" onclick="toggleHidden()" style="font-size:12px"><i class="ti ti-eye"></i>${showHidden?'通常表示':'過去の案件'}</button>
     <button class="btn" onclick="resetSort()" style="font-size:12px"><i class="ti ti-arrow-back-up"></i>ソートを戻す</button>
     <button class="btn" onclick="loadData()" style="font-size:12px"><i class="ti ti-refresh"></i>更新</button>
     <button class="btn btn-primary" onclick="openNew()"><i class="ti ti-plus"></i>新規追加</button>
@@ -387,6 +390,7 @@ window.downloadCSV = () => {
   URL.revokeObjectURL(url);
 };
 
+window.toggleHidden = () => { showHidden=!showHidden; render(); };
 window.resetSort = () => { sortCol='honDates'; sortAsc=false; render(); };
 window.setSort = col => { if(sortCol===col) sortAsc=!sortAsc; else{sortCol=col;sortAsc=true;} render(); };
 window.setFilter = (key,val) => { if(key==='tanto') filterTanto=val; else filterStatus=val; render(); };
