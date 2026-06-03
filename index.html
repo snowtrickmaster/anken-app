@@ -202,8 +202,8 @@ function getFiltered() {
   if(searchText) rows=rows.filter(r=>(r.anken+r.sakiTanto+r.memo).includes(searchText));
   rows.sort((a,b)=>{
     // 期限切れは常に一番下
-    const aExpired = (daysUntil(a.sakiLimit?.date)<0 || daysUntil(a.boshuLimit?.date)<0);
-    const bExpired = (daysUntil(b.sakiLimit?.date)<0 || daysUntil(b.boshuLimit?.date)<0);
+    const aExpired = daysUntil(a.boshuLimit?.date)<0;
+    const bExpired = daysUntil(b.boshuLimit?.date)<0;
     if(aExpired && !bExpired) return 1;
     if(!aExpired && bExpired) return -1;
     let av,bv;
