@@ -288,7 +288,8 @@ function renderMetrics(tanto) {
       ${STATUS_LIST.map(s=>`<option value="${s}" ${filterStatus===s?'selected':''}>${s}</option>`).join('')}
     </select>
     <input type="text" id="search-input" placeholder="案件名・備考で検索" value="${searchText}" onkeydown="if(event.key==='Enter'&&!event.isComposing)execSearch()" style="flex:1;min-width:140px;max-width:220px;font-size:13px;padding:5px 9px;height:30px;border:1px solid var(--border2);border-radius:var(--radius-sm) 0 0 var(--radius-sm);background:var(--bg);color:var(--text);outline:none;border-right:none">
-    <button onclick="execSearch()" style="font-size:12px;padding:0 10px;height:30px;border:1px solid var(--border2);border-radius:0 var(--radius-sm) var(--radius-sm) 0;background:var(--bg);color:var(--text);cursor:pointer;white-space:nowrap">検索</button>
+    <button onclick="execSearch()" style="font-size:12px;padding:0 10px;height:30px;border:1px solid var(--border2);border-left:none;border-right:none;background:var(--bg);color:var(--text);cursor:pointer;white-space:nowrap">検索</button>
+    ${searchText?`<button onclick="clearSearch()" style="font-size:12px;padding:0 10px;height:30px;border:1px solid #fca5a5;border-radius:0 var(--radius-sm) var(--radius-sm) 0;background:#fef2f2;color:#dc2626;cursor:pointer;white-space:nowrap">✕ 解除</button>`:`<span style="display:inline-block;width:0;border-right:1px solid var(--border2);height:30px;border-radius:0 var(--radius-sm) var(--radius-sm) 0"></span>`}
   </div>`;
 }
 
@@ -397,6 +398,7 @@ window.setSort = col => { if(sortCol===col) sortAsc=!sortAsc; else{sortCol=col;s
 window.setFilter = (key,val) => { if(key==='tanto') filterTanto=val; else filterStatus=val; render(); };
 window.setSearch = val => { searchText=val; render(); };
 window.execSearch = () => { const el=document.getElementById('search-input'); if(el){ searchText=el.value; render(); } };
+window.clearSearch = () => { searchText=''; render(); };
 
 // ===== CRUD =====
 window.updateStatus = async (id, val) => {
