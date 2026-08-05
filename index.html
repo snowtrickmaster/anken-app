@@ -404,15 +404,19 @@ window.clearSearch = () => { searchText=''; render(); };
 window.updateStatus = async (id, val) => {
   const r=data.find(d=>d.id===id); if(!r) return;
   const orig=r.status; r.status=val; render();
+  stopAutoReload();
   try { await api('update', r); }
   catch(e) { r.status=orig; render(); alert('更新に失敗しました'); }
+  finally { startAutoReload(); }
 };
 
 window.deleteRow = async id => {
   if(!confirm('この案件を削除しますか？')) return;
   const orig=[...data]; data=data.filter(d=>d.id!==id); render();
+  stopAutoReload();
   try { await api('delete', id); }
   catch(e) { data=orig; render(); alert('削除に失敗しました'); }
+  finally { startAutoReload(); }
 };
 
 // ===== モーダル =====
@@ -494,6 +498,7 @@ window.saveForm = async (editingId) => {
   if(!tanto||!anken){ alert('担当者と案件名は必須です'); return; }
   const btn=document.getElementById('save-btn');
   btn.disabled=true; btn.innerHTML=`<span class="spinner"></span> 保存中...`;
+  stopAutoReload();
   const honDates=[];
   const fields={
     tanto, anken,
@@ -520,7 +525,7 @@ window.saveForm = async (editingId) => {
   } catch(e) {
     alert('保存に失敗しました：'+e.message);
     btn.disabled=false; btn.textContent=editingId!==null?'保存':'追加';
-  }
+  } finally { startAutoReload(); }
 };
 
 // ===== 起動 =====
