@@ -133,29 +133,20 @@ let filterTanto = 'all', filterStatus = 'all', searchText = '', showHidden = fal
 let loading = false;
 
 // ===== API =====
-async function api(action, payload, retries=3) {
+async function api(action, payload) {
   const params = new URLSearchParams({ action });
   if (payload) {
     if (action === 'delete') params.set('id', payload);
     else params.set('data', JSON.stringify(payload));
   }
-  let lastError;
-  for (let i = 0; i < retries; i++) {
-    try {
-      const res = await fetch(`${GAS_URL}?${params}`, {
-        method: 'GET',
-        redirect: 'follow',
-        mode: 'cors',
-      });
-      const json = await res.json();
-      if (json.error) throw new Error(json.error);
-      return json;
-    } catch(e) {
-      lastError = e;
-      if (i < retries - 1) await new Promise(r => setTimeout(r, 1500)); // 1.5秒待ってリトライ
-    }
-  }
-  throw lastError;
+  const res = await fetch(`${GAS_URL}?${params}`, {
+    method: 'GET',
+    redirect: 'follow',
+    mode: 'cors',
+  });
+  const json = await res.json();
+  if (json.error) throw new Error(json.error);
+  return json;
 }
 
 let lastUpdated = null;
@@ -414,17 +405,22 @@ window.updateStatus = async (id, val) => {
   const r=data.find(d=>d.id===id); if(!r) return;
   const orig=r.status; r.status=val; render();
   stopAutoReload();
-  try { await api('update', r); }
-  catch(e) { r.status=orig; render(); alert('更新に失敗しました'); }
-  finally { startAutoReload(); }
+  try {
+    await api('update', r);
+    // 成功したらローカルデータはそのまま（全件再取得しない）
+  } catch(e) {
+    r.status=orig; render(); alert('更新に失敗しました');
+  } finally { startAutoReload(); }
 };
 
 window.deleteRow = async id => {
   if(!confirm('この案件を削除しますか？')) return;
   const orig=[...data]; data=data.filter(d=>d.id!==id); render();
   stopAutoReload();
-  try { await api('delete', id); }
-  catch(e) { data=orig; render(); alert('削除に失敗しました'); }
+  try {
+    await api('delete', id);
+    // 成功したらローカルデータはそのまま（全件再取得しない）
+  } catch(e) { data=orig; render(); alert('削除に失敗しました'); }
   finally { startAutoReload(); }
 };
 
@@ -526,9 +522,11 @@ window.saveForm = async (editingId) => {
       await api('update', updated);
       const idx=data.findIndex(d=>d.id===editingId);
       if(idx>=0) data[idx]=updated;
+      // 全件再取得せずローカルデータだけ更新
     } else {
       const res=await api('add', fields);
-      data.push({id:res.id,...fields});
+      data.push({id:res.id,...fields,hidden:false});
+      // 全件再取得せずローカルに追加するだけ
     }
     closeModal(); render();
   } catch(e) {
