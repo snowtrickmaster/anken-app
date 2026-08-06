@@ -133,20 +133,29 @@ let filterTanto = 'all', filterStatus = 'all', searchText = '', showHidden = fal
 let loading = false;
 
 // ===== API =====
-async function api(action, payload) {
+async function api(action, payload, retries=3) {
   const params = new URLSearchParams({ action });
   if (payload) {
     if (action === 'delete') params.set('id', payload);
     else params.set('data', JSON.stringify(payload));
   }
-  const res = await fetch(`${GAS_URL}?${params}`, {
-    method: 'GET',
-    redirect: 'follow',
-    mode: 'cors',
-  });
-  const json = await res.json();
-  if (json.error) throw new Error(json.error);
-  return json;
+  let lastError;
+  for (let i = 0; i < retries; i++) {
+    try {
+      const res = await fetch(`${GAS_URL}?${params}`, {
+        method: 'GET',
+        redirect: 'follow',
+        mode: 'cors',
+      });
+      const json = await res.json();
+      if (json.error) throw new Error(json.error);
+      return json;
+    } catch(e) {
+      lastError = e;
+      if (i < retries - 1) await new Promise(r => setTimeout(r, 1500)); // 1.5秒待ってリトライ
+    }
+  }
+  throw lastError;
 }
 
 let lastUpdated = null;
