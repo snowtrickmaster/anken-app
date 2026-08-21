@@ -134,7 +134,8 @@ let loading = false;
 
 // ===== API =====
 function isGasExpiredError(e) {
-  return e.message && (e.message.includes('<!DOCTYPE') || e.message.includes('not valid JSON') || e.message.includes('Unexpected token'));
+  // HTMLページが返ってきた場合のみ期限切れと判定（通信エラーは除外）
+  return e.message && e.message.includes('<!DOCTYPE');
 }
 
 function showGasExpiredBanner() {
