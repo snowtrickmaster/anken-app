@@ -133,20 +133,43 @@ let filterTanto = 'all', filterStatus = 'all', searchText = '', showHidden = fal
 let loading = false;
 
 // ===== API =====
+function isGasExpiredError(e) {
+  return e.message && (e.message.includes('<!DOCTYPE') || e.message.includes('not valid JSON') || e.message.includes('Unexpected token'));
+}
+
+function showGasExpiredBanner() {
+  if(document.getElementById('gas-expired-banner')) return;
+  const banner = document.createElement('div');
+  banner.id = 'gas-expired-banner';
+  banner.style.cssText = 'position:fixed;top:0;left:0;width:100%;background:#dc2626;color:#fff;padding:12px 16px;font-size:13px;font-weight:500;z-index:9999;display:flex;align-items:center;justify-content:space-between;gap:12px;box-shadow:0 2px 8px rgba(0,0,0,.3)';
+  banner.innerHTML = `
+    <span>⚠️ GASのURLが期限切れです。設定画面からURLを更新してください。</span>
+    <button onclick="document.getElementById('gas-expired-banner').remove();renderSetup(true);" style="background:#fff;color:#dc2626;border:none;border-radius:5px;padding:5px 12px;font-size:12px;font-weight:600;cursor:pointer;white-space:nowrap">今すぐ更新</button>
+  `;
+  document.body.prepend(banner);
+}
+
 async function api(action, payload) {
   const params = new URLSearchParams({ action });
   if (payload) {
     if (action === 'delete') params.set('id', payload);
     else params.set('data', JSON.stringify(payload));
   }
-  const res = await fetch(`${GAS_URL}?${params}`, {
-    method: 'GET',
-    redirect: 'follow',
-    mode: 'cors',
-  });
-  const json = await res.json();
-  if (json.error) throw new Error(json.error);
-  return json;
+  try {
+    const res = await fetch(`${GAS_URL}?${params}`, {
+      method: 'GET',
+      redirect: 'follow',
+      mode: 'cors',
+    });
+    const json = await res.json();
+    if (json.error) throw new Error(json.error);
+    // 成功したらバナーを消す
+    document.getElementById('gas-expired-banner')?.remove();
+    return json;
+  } catch(e) {
+    if(isGasExpiredError(e)) showGasExpiredBanner();
+    throw e;
+  }
 }
 
 let lastUpdated = null;
