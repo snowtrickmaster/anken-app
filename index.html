@@ -133,11 +133,6 @@ let filterTanto = 'all', filterStatus = 'all', searchText = '', showHidden = fal
 let loading = false;
 
 // ===== API =====
-function isGasExpiredError(e) {
-  // HTMLページが返ってきた場合のみ期限切れと判定（通信エラーは除外）
-  return e.message && e.message.includes('<!DOCTYPE');
-}
-
 function showGasExpiredBanner() {
   if(document.getElementById('gas-expired-banner')) return;
   const banner = document.createElement('div');
@@ -156,20 +151,25 @@ async function api(action, payload) {
     if (action === 'delete') params.set('id', payload);
     else params.set('data', JSON.stringify(payload));
   }
+  const res = await fetch(`${GAS_URL}?${params}`, {
+    method: 'GET',
+    redirect: 'follow',
+    mode: 'cors',
+  });
+  // レスポンスのテキストを確認してHTMLが返ってきていたら期限切れと判定
+  const text = await res.text();
+  if(text.trimStart().startsWith('<!DOCTYPE') || text.trimStart().startsWith('<html')) {
+    showGasExpiredBanner();
+    throw new Error('GAS URL expired');
+  }
+  // 成功したらバナーを消す
+  document.getElementById('gas-expired-banner')?.remove();
   try {
-    const res = await fetch(`${GAS_URL}?${params}`, {
-      method: 'GET',
-      redirect: 'follow',
-      mode: 'cors',
-    });
-    const json = await res.json();
+    const json = JSON.parse(text);
     if (json.error) throw new Error(json.error);
-    // 成功したらバナーを消す
-    document.getElementById('gas-expired-banner')?.remove();
     return json;
   } catch(e) {
-    if(isGasExpiredError(e)) showGasExpiredBanner();
-    throw e;
+    throw new Error('レスポンスの解析に失敗しました');
   }
 }
 
