@@ -277,6 +277,7 @@ function renderTable() {
       <td style="white-space:nowrap;display:flex;gap:4px">
         <button class="btn btn-sm" onclick="openEdit(${r.id})"><i class="ti ti-edit"></i></button>
         <button class="btn btn-sm btn-danger" onclick="deleteRow(${r.id})"><i class="ti ti-trash"></i></button>
+        <button class="btn btn-sm" onclick="copyRow(${r.id})" title="複製"><i class="ti ti-copy"></i></button>
       </td>
     </tr>`;
   }).join('');
@@ -434,6 +435,22 @@ window.updateStatus = async (id, val) => {
     // 成功したらローカルデータはそのまま（全件再取得しない）
   } catch(e) {
     r.status=orig; render(); alert('更新に失敗しました');
+  } finally { startAutoReload(); }
+};
+
+window.copyRow = async (id) => {
+  const r = data.find(d=>d.id===id);
+  if(!r) return;
+  const copy = {...r};
+  delete copy.id;
+  copy.status = '対応中';
+  stopAutoReload();
+  try {
+    const res = await api('add', copy);
+    data.push({id:res.id, ...copy, hidden:false});
+    render();
+  } catch(e) {
+    alert('複製に失敗しました');
   } finally { startAutoReload(); }
 };
 
