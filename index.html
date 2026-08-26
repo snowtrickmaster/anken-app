@@ -133,13 +133,16 @@ let filterTanto = 'all', filterStatus = 'all', searchText = '', showHidden = fal
 let loading = false;
 
 // ===== API =====
+let gasFailCount = 0;
+const GAS_FAIL_THRESHOLD = 3;
+
 function showGasExpiredBanner() {
   if(document.getElementById('gas-expired-banner')) return;
   const banner = document.createElement('div');
   banner.id = 'gas-expired-banner';
-  banner.style.cssText = 'position:fixed;top:0;left:0;width:100%;background:#dc2626;color:#fff;padding:12px 16px;font-size:13px;font-weight:500;z-index:9999;display:flex;align-items:center;justify-content:space-between;gap:12px;box-shadow:0 2px 8px rgba(0,0,0,.3)';
+  banner.style.cssText = 'position:fixed;top:0;right:0;width:50%;background:#dc2626;color:#fff;padding:10px 16px;font-size:13px;font-weight:500;z-index:9999;display:flex;align-items:center;justify-content:space-between;gap:12px;box-shadow:0 2px 8px rgba(0,0,0,.3);border-radius:0 0 0 8px';
   banner.innerHTML = `
-    <span>⚠️ GASのURLが期限切れです。設定画面からURLを更新してください。</span>
+    <span>⚠️ GASのURLが期限切れです。</span>
     <button onclick="document.getElementById('gas-expired-banner').remove();renderSetup(true);" style="background:#fff;color:#dc2626;border:none;border-radius:5px;padding:5px 12px;font-size:12px;font-weight:600;cursor:pointer;white-space:nowrap">今すぐ更新</button>
   `;
   document.body.prepend(banner);
@@ -156,13 +159,14 @@ async function api(action, payload) {
     redirect: 'follow',
     mode: 'cors',
   });
-  // レスポンスのテキストを確認してHTMLが返ってきていたら期限切れと判定
   const text = await res.text();
   if(text.trimStart().startsWith('<!DOCTYPE') || text.trimStart().startsWith('<html')) {
-    showGasExpiredBanner();
+    gasFailCount++;
+    if(gasFailCount >= GAS_FAIL_THRESHOLD) showGasExpiredBanner();
     throw new Error('GAS URL expired');
   }
-  // 成功したらバナーを消す
+  // 成功したらカウントリセット＆バナーを消す
+  gasFailCount = 0;
   document.getElementById('gas-expired-banner')?.remove();
   try {
     const json = JSON.parse(text);
