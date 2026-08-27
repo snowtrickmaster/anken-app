@@ -134,13 +134,13 @@ let loading = false;
 
 // ===== API =====
 let gasFailCount = 0;
-const GAS_FAIL_THRESHOLD = 3;
+const GAS_FAIL_THRESHOLD = 5;
 
 function showGasExpiredBanner() {
   if(document.getElementById('gas-expired-banner')) return;
   const banner = document.createElement('div');
   banner.id = 'gas-expired-banner';
-  banner.style.cssText = 'position:fixed;top:0;right:0;width:50%;background:#dc2626;color:#fff;padding:10px 16px;font-size:13px;font-weight:500;z-index:9999;display:flex;align-items:center;justify-content:space-between;gap:12px;box-shadow:0 2px 8px rgba(0,0,0,.3);border-radius:0 0 0 8px';
+  banner.style.cssText = 'position:fixed;top:0;left:0;width:50%;background:#dc2626;color:#fff;padding:10px 16px;font-size:13px;font-weight:500;z-index:9999;display:flex;align-items:center;justify-content:space-between;gap:12px;box-shadow:0 2px 8px rgba(0,0,0,.3);border-radius:0 0 8px 0';
   banner.innerHTML = `
     <span>⚠️ GASのURLが期限切れです。</span>
     <button onclick="document.getElementById('gas-expired-banner').remove();renderSetup(true);" style="background:#fff;color:#dc2626;border:none;border-radius:5px;padding:5px 12px;font-size:12px;font-weight:600;cursor:pointer;white-space:nowrap">今すぐ更新</button>
