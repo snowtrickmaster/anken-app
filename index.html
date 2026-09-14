@@ -152,6 +152,7 @@ async function api(action, payload) {
   const params = new URLSearchParams({ action });
   if (payload) {
     if (action === 'delete') params.set('id', payload);
+    else if (action === 'getAll' && typeof payload === 'number') params.set('limit', payload);
     else params.set('data', JSON.stringify(payload));
   }
   const controller = new AbortController();
@@ -186,16 +187,31 @@ async function api(action, payload) {
 }
 
 let lastUpdated = null;
+let allDataLoaded = false;
+
 async function loadData() {
-  loading = true; render();
+  loading = true; allDataLoaded = false; render();
   try {
-    data = await api('getAll');
+    // まず最新200件を高速表示
+    data = await api('getAll', 200);
     lastUpdated = new Date();
     lastKnownId = data.length ? Math.max(...data.map(d=>d.id||0)) : 0;
     loading = false; render();
+    // バックグラウンドで全件取得
+    loadAllData();
   } catch(e) {
     loading = false; renderError('データの読み込みに失敗しました：' + e.message);
   }
+}
+
+async function loadAllData() {
+  try {
+    const all = await api('getAll');
+    data = all;
+    allDataLoaded = true;
+    lastKnownId = data.length ? Math.max(...data.map(d=>d.id||0)) : 0;
+    render();
+  } catch(e) { /* サイレントに失敗 */ }
 }
 
 // ===== ユーティリティ =====
@@ -349,7 +365,7 @@ function render() {
     <span style="font-size:11px;color:#999">${lastUpdated?'最終更新 '+lastUpdated.getHours()+':'+String(lastUpdated.getMinutes()).padStart(2,'0'):''}</span>
     <button class="btn" onclick="toggleHidden()" style="font-size:12px"><i class="ti ti-eye"></i>${showHidden?'通常表示':'過去の案件'}</button>
     <button class="btn" onclick="resetSort()" style="font-size:12px"><i class="ti ti-arrow-back-up"></i>ソートを戻す</button>
-    <button class="btn" onclick="loadData()" style="font-size:12px"><i class="ti ti-refresh"></i>更新</button>
+    <button class="btn" onclick="loadData()" style="font-size:12px"><i class="ti ti-refresh"></i>${allDataLoaded?'更新':'読込中...'}</button>
   </div>
   ${renderAlerts()}
   ${renderMetrics(tanto)}
