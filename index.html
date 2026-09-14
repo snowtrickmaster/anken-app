@@ -191,6 +191,7 @@ async function loadData() {
   try {
     data = await api('getAll');
     lastUpdated = new Date();
+    lastKnownId = data.length ? Math.max(...data.map(d=>d.id||0)) : 0;
     loading = false; render();
   } catch(e) {
     loading = false; renderError('データの読み込みに失敗しました：' + e.message);
@@ -589,17 +590,25 @@ window.saveForm = async (editingId) => {
 };
 
 // ===== 起動 =====
-// 自動更新（1分ごと）
+// 自動更新（3分ごと・差分チェック方式）
 let autoReloadTimer = null;
+let lastKnownId = 0;
+
 function startAutoReload() {
   stopAutoReload();
   autoReloadTimer = setInterval(async () => {
-    // モーダルが開いている間は更新しない
     if(document.getElementById('modal-overlay')) return;
     try {
-      const fresh = await api('getAll');
-      data = fresh;
-      render();
+      // まず最新IDだけ確認（軽い処理）
+      const res = await api('getLastId');
+      if(res.lastId !== lastKnownId) {
+        // IDが変わっていたら全件取得
+        const fresh = await api('getAll');
+        data = fresh;
+        lastKnownId = res.lastId;
+        lastUpdated = new Date();
+        render();
+      }
     } catch(e) { /* サイレントに失敗 */ }
   }, 180000);
 }
