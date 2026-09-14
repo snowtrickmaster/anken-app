@@ -154,11 +154,19 @@ async function api(action, payload) {
     if (action === 'delete') params.set('id', payload);
     else params.set('data', JSON.stringify(payload));
   }
-  const res = await fetch(`${GAS_URL}?${params}`, {
-    method: 'GET',
-    redirect: 'follow',
-    mode: 'cors',
-  });
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 30000);
+  let res;
+  try {
+    res = await fetch(`${GAS_URL}?${params}`, {
+      method: 'GET',
+      redirect: 'follow',
+      mode: 'cors',
+      signal: controller.signal,
+    });
+  } finally {
+    clearTimeout(timeout);
+  }
   const text = await res.text();
   if(text.trimStart().startsWith('<!DOCTYPE') || text.trimStart().startsWith('<html')) {
     gasFailCount++;
@@ -593,7 +601,7 @@ function startAutoReload() {
       data = fresh;
       render();
     } catch(e) { /* サイレントに失敗 */ }
-  }, 60000);
+  }, 180000);
 }
 function stopAutoReload() {
   if(autoReloadTimer) { clearInterval(autoReloadTimer); autoReloadTimer = null; }
