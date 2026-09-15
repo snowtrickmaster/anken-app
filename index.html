@@ -156,7 +156,7 @@ async function api(action, payload) {
     else params.set('data', JSON.stringify(payload));
   }
   const controller = new AbortController();
-  const timeout = setTimeout(() => { controller.abort(); }, 60000);
+  const timeout = setTimeout(() => { controller.abort(); }, 120000);
   let res;
   try {
     res = await fetch(`${GAS_URL}?${params}`, {
